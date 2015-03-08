@@ -9,72 +9,96 @@
 // });
 
 var VisualizationController = function(){
+  this.dates = {startDate: new Date("2014-08-01"), endDate: new Date("2015-03-10")};
   this.unitData = {};
+  this.unitDataByDate = {};
   this.renderGraph();
   this.getAndRenderData();
   this.dateListeners();
   this.selectionListener();
   this.selected = "social";
-  this.dates = {startDate: new Date("2015-02-01"), endDate: new Date("2015-02-28")};
-  this.width = 700,
-  this.height = 400,
+  this.width = 700;
+  this.height = 400;
   this.padding = 100;
   // this.graphData = this.unitData[this.selected]; // defaults to social
 };
 
 
 VisualizationController.prototype = {
+  boundDataByDate: function(){
+    for (var key in this.unitData){
+      this.unitDataByDate[key] = this.unitData[key].map(function(dataPoint){
+        console.log(this.dates) // why??
+        if (this.dates.startDate <= dataPoint.timestamp && this.dates.endDate >= dataPoint.timestamp){
+          return dataPoint;
+        }
+      });
+      this.renderData(this.unitData[this.selected]);
+
+    }
+    // console.log(self.unitDataByDate);
+
+  },
   dateListeners: function(){
     var self = this;
     document.getElementById("start-date").addEventListener('change', function(e){
       self.dates.startDate = new Date(this.value);
+      this.boundDataByDate();
     });
     document.getElementById("end-date").addEventListener('change', function(e){
       self.dates.endDate = new Date(this.value);
-      console.log(self.dates);
+      this.boundDataByDate();
     });
   },
-  getData: function(unit, unitName){
+  getData: function(unit, unitName, def){
     var self = this;
     $.ajax( { url: "https://api.mongolab.com/api/1/databases/healthsweet/collections/filtered_observations?q={'unit': '" + unit + "'}&apiKey=50f3be0fe4b09b3cd11ebcd1",
       type: "GET",
       contentType: "application/json" } )
     .done(function(d){
       d.forEach(function(el){
-        el.timestamp = el.timestamp.$date;
+        el.timestamp = new Date(el.timestamp.$date);
       });
       self.unitData[unitName] = d;
+      def.resolve();
     });
   },
   getDate: function(){
     var currentDate = $( ".datepicker" ).datepicker( "getDate" );
   },
   getAndRenderData: function(){
-    this.getData("MDC_HF_ACT_SLEEP", "sleep");
-    this.getData("MDC_HF_DISTANCE", "steps");
-    this.getData("MDC_PHYSIO_MOOD", "mood");
-    this.getSentimentData("social");
+    var d1 = new $.Deferred();
+    var d2 = new $.Deferred();
+    var d3 = new $.Deferred();
+    var d4 = new $.Deferred();
+    var self = this;
+    this.getData("MDC_HF_ACT_SLEEP", "sleep", d1);
+    this.getData("MDC_HF_DISTANCE", "steps", d2);
+    this.getData("MDC_PHYSIO_MOOD", "mood", d3);
+    this.getSentimentData("social", d4);
+    $.when(d1, d2, d3, d4).then(function(){
+      self.boundDataByDate();
+    }); // doesn't work
   },
-  getSentimentData: function(unitName){
+  getSentimentData: function(unitName, def){
     var self = this;
     $.ajax( { url: "https://api.mongolab.com/api/1/databases/healthsweet/collections/sentiment?q={}&apiKey=50f3be0fe4b09b3cd11ebcd1",
       type: "GET",
       contentType: "application/json" } )
     .done(function(d){
       d.forEach(function(el){
-        el.timestamp = el.created_at;
+        el.timestamp = new Date(el.created_at);
         el.value = el.sentiment.aggregate.score;
         el.sentValue = el.sentiment.sentiment;
       });
       self.unitData[unitName] = d;
-      console.log(self.unitData);
-      self.renderData(self.unitData["social"]);
+      def.resolve();
     });
   },
+  plotLine: function(){
+
+  },
   plotPoints: function(posArray){
-    console.log(posArray);
-
-
     d3.selectAll(".point").remove();
 
     var circles = this.graph.selectAll("circle");
@@ -82,8 +106,6 @@ VisualizationController.prototype = {
     var colorScale = d3.scale.linear()
       .domain([d3.min(posArray[1]), d3.max(posArray[1])])    // values within the scope of the data
       .range([-200, 200]); 
-
-      console.log(posArray);
 
     var coordArr = [];
     for(var i = 0; i<posArray[0].length; i++){
@@ -121,6 +143,7 @@ VisualizationController.prototype = {
   },
 
   renderData: function(data){
+    console.log(data);
     var dateData = this.setDataDateRange(data);
     var valueData = this.setDataValueRange(data);
     this.plotPoints([dateData, valueData]);
@@ -152,7 +175,6 @@ VisualizationController.prototype = {
     return yScale; // used to transform data points
   },
   renderDataDateRange: function(mindate, maxdate){
-    console.log(mindate, maxdate);
     var xScale = d3.time.scale()
       .domain([mindate, maxdate])    // values within the scope of the data
       .range([this.padding, this.width - this.padding * 2]); // ?
@@ -181,9 +203,8 @@ VisualizationController.prototype = {
   },
   setDataDateRange: function(data){
     var daterange = [];
-    console.log(data);
     for (var i=0; i<data.length; i++){
-      daterange.push(new Date(data[i].timestamp));
+      daterange.push(data[i].timestamp);
     }
 
     var maxdate = new Date(Math.max.apply(Math, daterange));
@@ -192,7 +213,6 @@ VisualizationController.prototype = {
     var mappedRange = daterange.map(function(item){
       return xScale(item);
     });
-    // console.log(mappedRange);
     return mappedRange;
   },
   setDataValueRange: function(data){
@@ -206,14 +226,14 @@ VisualizationController.prototype = {
     var mappedRange = range.map(function(item){
       return yScale(item); // converts the values here from their original scale
     });
-    console.log(range)
+
     return mappedRange;
   },
   selectionListener: function(){
     var self = this;
     document.getElementById("type-menu").addEventListener('change', function(){
       self.selected = this.options[this.selectedIndex].value;
-      self.renderData(self.unitData[self.selected]);
+      self.renderData(self.unitDataByDate[self.selected]);
     });
   }
 };
