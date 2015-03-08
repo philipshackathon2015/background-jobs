@@ -80,19 +80,32 @@ VisualizationController.prototype = {
     var circles = this.graph.selectAll("circle");
 
     var colorScale = d3.scale.linear()
-      .domain([posArray[0], posArray[1]])    // values within the scope of the data
+      .domain([d3.min(posArray[1]), d3.max(posArray[1])])    // values within the scope of the data
       .range([-200, 200]); 
+
+      console.log(posArray);
+
+    var coordArr = [];
+    for(var i = 0; i<posArray[0].length; i++){
+      coordArr[i] = [posArray[0][i], posArray[1][i]];
+    }
+    console.log(coordArr);
 
     var self = this;
 
-    circles.data(posArray)
+    circles.data(coordArr)
       .enter()
       .append("circle")
-      .style("color", function(d){
-        if(self.selected == "social"){
-        }
-        console.log(d[1]);
-          return "rgb(0," + colorScale(d[1]) + ",0,0.5)";
+      .attr("fill", function(d){
+        // if(self.selected == "social"){
+          if (colorScale(d[1])>0){
+            // console.log("rgb(" + (Math.floor(colorScale(d[1]))) + ",0,0)");
+            return "rgba(" + (Math.floor(colorScale(d[1]))) + ",0,50,0.7)";
+          } else {
+            // console.log(colorScale(d[1]));
+            return "rgba(0," + (-1 * Math.floor(colorScale(d[1]))) + ",50,0.7)";
+          } // change these for color scale
+        // }
       })
       .attr("class", "point")
       .attr("cx", function(d, i){
@@ -102,7 +115,7 @@ VisualizationController.prototype = {
         return d[1];
       })
       .attr("r", function() {
-        return 5 + "px";
+        return 10 + "px";
       });
 
   },
@@ -110,12 +123,7 @@ VisualizationController.prototype = {
   renderData: function(data){
     var dateData = this.setDataDateRange(data);
     var valueData = this.setDataValueRange(data);
-    var fullData = [];
-    for(var i = 0; i<dateData.length; i++){
-      fullData[i] = [dateData[i], valueData[i]];
-    }
-    console.log(fullData);
-    this.plotPoints(fullData);
+    this.plotPoints([dateData, valueData]);
   },
   renderGraph: function(){
     this.graph = d3.select("body")
@@ -141,7 +149,7 @@ VisualizationController.prototype = {
       .attr("id", "yaxis")
       .attr("transform", "translate("+this.padding+",0)")
       .call(yAxis);
-    return yScale;
+    return yScale; // used to transform data points
   },
   renderDataDateRange: function(mindate, maxdate){
     console.log(mindate, maxdate);
@@ -163,7 +171,7 @@ VisualizationController.prototype = {
         .call(xAxis);
 
     this.rotateXLabels();
-    return xScale;            
+    return xScale; // used to transform data points
   },
   rotateXLabels: function(){
     this.graph.selectAll(".xaxis text")  // select all the text elements for the xaxis
@@ -184,7 +192,7 @@ VisualizationController.prototype = {
     var mappedRange = daterange.map(function(item){
       return xScale(item);
     });
-    console.log(mappedRange);
+    // console.log(mappedRange);
     return mappedRange;
   },
   setDataValueRange: function(data){
@@ -196,8 +204,9 @@ VisualizationController.prototype = {
     var minvalue = Math.min.apply(Math, range);
     var yScale = this.renderDataValueRange(minvalue, maxvalue);
     var mappedRange = range.map(function(item){
-      return yScale(item);
+      return yScale(item); // converts the values here from their original scale
     });
+    console.log(range)
     return mappedRange;
   },
   selectionListener: function(){
