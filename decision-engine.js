@@ -2,18 +2,20 @@ var MongoClient = require('mongodb').MongoClient;
 var moment = require("moment");
 var Pusher = require('pusher');
 var env = require('node-env-file');
- 
-env('./.env');
+var crontab = require('node-crontab');
+
+
 var pusher = new Pusher({
   appId: '110215',
   key: '178160f97893ca18c3d2',
   secret: '388480ad57e7de314634'
 });
  
-
+env('./.env');
 var mongodb;
 
 var main = function() {
+	env('./.env');
 	//check if user has responded to a survey in the last day, if yes quit
 	getLastUserCheckin(function(checkin_moment) {
 		/*var now = moment();
@@ -104,8 +106,8 @@ var getLastPostActivity = function(callback) {
 
 var sendTrigger = function(type) {
 	console.log("sending push:"+type);
-	pusher.trigger('test_channel', 'my_event', {
-	  "message": "hello world",
+	pusher.trigger('HealthSweet', 'newSurvey', {
+	  "message": "ahoy there!",
 	  "type":type
 	});
 	finish();
@@ -113,8 +115,8 @@ var sendTrigger = function(type) {
 
 var finish = function() {
 	console.log("finished");
-	mongodb.close();
-	process.exit(1);
+	//mongodb.close();
+	//process.exit(1);
 }
 
 MongoClient.connect(process.env.MONGO_URL, function(err, db) {
@@ -123,8 +125,8 @@ MongoClient.connect(process.env.MONGO_URL, function(err, db) {
 	} else {
 		console.log("connected to mongo!")
 		//entry point
-		mongodb = db;	
-		main();
+		mongodb = db;
+		var jobId = setInterval(main,10000);
 	}
 	
 });

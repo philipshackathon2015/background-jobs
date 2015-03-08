@@ -19,6 +19,7 @@
   "dependencies": {
     "moment": "^2.9.0",
     "mongodb": "^1.4.33",
+    "node-crontab": "0.0.8",
     "node-env-file": "^0.1.7",
     "pusher": "^1.0.4"
   }
