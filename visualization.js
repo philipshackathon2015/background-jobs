@@ -26,17 +26,20 @@ var VisualizationController = function(){
 
 VisualizationController.prototype = {
   boundDataByDate: function(){
-    for (var key in this.unitData){
-      this.unitDataByDate[key] = this.unitData[key].map(function(dataPoint){
-        console.log(this.dates) // why??
-        if (this.dates.startDate <= dataPoint.timestamp && this.dates.endDate >= dataPoint.timestamp){
+    var self = this;
+    for (var key in self.unitData){
+      self.unitDataByDate[key] = self.unitData[key].map(function(dataPoint){
+        if (self.dates.startDate <= dataPoint.timestamp && self.dates.endDate >= dataPoint.timestamp){
           return dataPoint;
         }
       });
-      this.renderData(this.unitData[this.selected]);
+      console.log(self.unitDataByDate[key]);
+      self.unitDataByDate[key] = self.unitDataByDate[key].filter(function(n){ return n != undefined; });
 
     }
-    // console.log(self.unitDataByDate);
+    console.log(this.selected)
+    this.renderData(self.unitDataByDate[this.selected]);
+    console.log(self.unitDataByDate);
 
   },
   dateListeners: function(){
@@ -78,7 +81,7 @@ VisualizationController.prototype = {
     this.getSentimentData("social", d4);
     $.when(d1, d2, d3, d4).then(function(){
       self.boundDataByDate();
-    }); // doesn't work
+    }); 
   },
   getSentimentData: function(unitName, def){
     var self = this;
@@ -233,6 +236,7 @@ VisualizationController.prototype = {
     var self = this;
     document.getElementById("type-menu").addEventListener('change', function(){
       self.selected = this.options[this.selectedIndex].value;
+      console.log(self.unitDataByDate[self.selected])
       self.renderData(self.unitDataByDate[self.selected]);
     });
   }
