@@ -52,6 +52,7 @@ VisualizationController.prototype = {
   getAndRenderData: function(){
     this.getData("MDC_HF_ACT_SLEEP", "sleep");
     this.getData("MDC_HF_DISTANCE", "steps");
+    this.getData("MDC_PHYSIO_MOOD", "mood");
     this.getSentimentData("social");
   },
   getSentimentData: function(unitName){
@@ -71,25 +72,50 @@ VisualizationController.prototype = {
     });
   },
   plotPoints: function(posArray){
+    console.log(posArray);
 
-  this.graph.selectAll("circle")
-    .data(posArray)
-    .enter()
-    .append("circle")
-    .attr("cx", function(d, i){
-      return (i * 50 ) + 25; //how to push it along on the graph
-    })
-    .attr("cy", function(d){
-      return d;
-    })
-    .attr("r", function() {
-      return 5 + "px";
-    });
+
+    d3.selectAll(".point").remove();
+
+    var circles = this.graph.selectAll("circle");
+
+    var colorScale = d3.scale.linear()
+      .domain([posArray[0], posArray[1]])    // values within the scope of the data
+      .range([-200, 200]); 
+
+    var self = this;
+
+    circles.data(posArray)
+      .enter()
+      .append("circle")
+      .style("color", function(d){
+        if(self.selected == "social"){
+        }
+        console.log(d[1]);
+          return "rgb(0," + colorScale(d[1]) + ",0,0.5)";
+      })
+      .attr("class", "point")
+      .attr("cx", function(d, i){
+        return d[0];
+      })
+      .attr("cy", function(d){
+        return d[1];
+      })
+      .attr("r", function() {
+        return 5 + "px";
+      });
+
   },
+
   renderData: function(data){
     var dateData = this.setDataDateRange(data);
     var valueData = this.setDataValueRange(data);
-    this.plotPoints([dateData, valueData]);
+    var fullData = [];
+    for(var i = 0; i<dateData.length; i++){
+      fullData[i] = [dateData[i], valueData[i]];
+    }
+    console.log(fullData);
+    this.plotPoints(fullData);
   },
   renderGraph: function(){
     this.graph = d3.select("body")
@@ -115,6 +141,7 @@ VisualizationController.prototype = {
       .attr("id", "yaxis")
       .attr("transform", "translate("+this.padding+",0)")
       .call(yAxis);
+    return yScale;
   },
   renderDataDateRange: function(mindate, maxdate){
     console.log(mindate, maxdate);
@@ -127,15 +154,16 @@ VisualizationController.prototype = {
             .orient("bottom")
             .scale(xScale);
 
-    d3.select("xaxis").remove();
+    d3.select("#xaxis").remove();
 
     this.graph.append("g")
-        .attr("class", "xaxis")   // give it a class so it can be used to select only xaxis labels  below
+        .attr("class", "xaxis") 
         .attr("id", "xaxis")
         .attr("transform", "translate(0," + (this.height - this.padding) + ")")
         .call(xAxis);
 
-    this.rotateXLabels();            
+    this.rotateXLabels();
+    return xScale;            
   },
   rotateXLabels: function(){
     this.graph.selectAll(".xaxis text")  // select all the text elements for the xaxis
@@ -145,15 +173,19 @@ VisualizationController.prototype = {
   },
   setDataDateRange: function(data){
     var daterange = [];
-    console.log(data)
+    console.log(data);
     for (var i=0; i<data.length; i++){
       daterange.push(new Date(data[i].timestamp));
     }
 
     var maxdate = new Date(Math.max.apply(Math, daterange));
     var mindate = new Date(Math.min.apply(Math, daterange));
-    this.renderDataDateRange(mindate, maxdate);
-    return daterange;
+    var xScale = this.renderDataDateRange(mindate, maxdate);
+    var mappedRange = daterange.map(function(item){
+      return xScale(item);
+    });
+    console.log(mappedRange);
+    return mappedRange;
   },
   setDataValueRange: function(data){
     var range = [];
@@ -162,8 +194,11 @@ VisualizationController.prototype = {
     }
     var maxvalue = Math.max.apply(Math, range);
     var minvalue = Math.min.apply(Math, range);
-    this.renderDataValueRange(minvalue, maxvalue);
-    return range;
+    var yScale = this.renderDataValueRange(minvalue, maxvalue);
+    var mappedRange = range.map(function(item){
+      return yScale(item);
+    });
+    return mappedRange;
   },
   selectionListener: function(){
     var self = this;
