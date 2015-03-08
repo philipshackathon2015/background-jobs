@@ -13,6 +13,7 @@ var pusher = new Pusher({
  
 env('./.env');
 var mongodb;
+var id = 0;
 
 var main = function() {
 	env('./.env');
@@ -51,7 +52,7 @@ var proceedToFHIRDataAnalysis = function() {
 		} else if(sleep < parseInt(process.env.SLEEP_TIME_THRESHOLD)) {
 			sendTrigger("sleep");
 		} else {
-			finish();
+			finish("donotsend");
 		}
 	});
 }
@@ -108,13 +109,17 @@ var sendTrigger = function(type) {
 	console.log("sending push:"+type);
 	pusher.trigger('HealthSweet', 'newSurvey', {
 	  "message": "ahoy there!",
-	  "type":type
+	  "type":type,
+	  "id":id
 	});
-	finish();
+	finish("send");
 }
 
-var finish = function() {
+var finish = function(type) {
 	console.log("finished");
+	if(type !== "send") {
+		id += 1;
+	}
 	//mongodb.close();
 	//process.exit(1);
 }
