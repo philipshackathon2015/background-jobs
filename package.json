@@ -1,0 +1,25 @@
+{
+  "name": "health-sweet",
+  "version": "1.0.0",
+  "description": "decision engine cron",
+  "main": "decision-engine.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/philipshackathon2015/health-sweet.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/philipshackathon2015/health-sweet/issues"
+  },
+  "homepage": "https://github.com/philipshackathon2015/health-sweet",
+  "dependencies": {
+    "moment": "^2.9.0",
+    "mongodb": "^1.4.33",
+    "node-env-file": "^0.1.7",
+    "pusher": "^1.0.4"
+  }
+}
